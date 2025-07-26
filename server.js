@@ -29,12 +29,8 @@ app.post('/api/users', async (req, res) => {
     await user.save();
     res.json({ username: user.username, _id: user._id });
   } catch (err) {
-    if (err.code === 11000) {
-      const user = await User.findOne({ username: req.body.username });
-      res.json({ username: user.username, _id: user._id });
-    } else {
-      res.status(400).json({ error: 'Could not create user' });
-    }
+    // Optionally handle duplicate usernames
+    res.status(400).json({ error: 'Could not create user' });
   }
 });
 
