@@ -1,12 +1,10 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: false }));
 
 mongoose.connect('mongodb://127.0.0.1:27017/exercisetracker', { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -23,24 +21,30 @@ const exerciseSchema = new mongoose.Schema({
 });
 const Exercise = mongoose.model('Exercise', exerciseSchema);
 
-// Create a new user
+// POST /api/users - create user with form data
 app.post('/api/users', async (req, res) => {
   try {
-    const user = new User({ username: req.body.username });
+    const { username } = req.body;
+    const user = new User({ username });
     await user.save();
     res.json({ username: user.username, _id: user._id });
   } catch (err) {
-    res.status(400).json({ error: 'Username already taken' });
+    if (err.code === 11000) {
+      const user = await User.findOne({ username: req.body.username });
+      res.json({ username: user.username, _id: user._id });
+    } else {
+      res.status(400).json({ error: 'Could not create user' });
+    }
   }
 });
 
-// Get all users
+// GET /api/users - list all users
 app.get('/api/users', async (req, res) => {
   const users = await User.find({}, 'username _id');
   res.json(users);
 });
 
-// Add exercise
+// POST /api/users/:_id/exercises - add exercise with form data
 app.post('/api/users/:_id/exercises', async (req, res) => {
   const { description, duration, date } = req.body;
   const user = await User.findById(req.params._id);
@@ -66,7 +70,7 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
   });
 });
 
-// Get user logs
+// GET /api/users/:_id/logs - get exercise logs with optional filters
 app.get('/api/users/:_id/logs', async (req, res) => {
   const { from, to, limit } = req.query;
   const user = await User.findById(req.params._id);
@@ -96,4 +100,5 @@ app.get('/api/users/:_id/logs', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Server started on port ' + PORT));
 app.listen(PORT, () => console.log('Server started on port ' + PORT));
